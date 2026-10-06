@@ -2,3 +2,5 @@
 test_lru
 test_lruk
 test_hash_lru
+test_lfu
+test_hash_lfu
