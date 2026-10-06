@@ -186,4 +186,95 @@ private:
 
     
 };
+
+// Lru-K
+// KLruKCache is a cache that uses a history list to store the access count of the keys
+template<typename Key, typename Value>
+class KLruKCache : public KLruCache<Key, Value>
+{
+public:
+    KLruKCache(int capacity, int historyCapacity, int k)
+        : KLruCache<Key, Value>(capacity)
+        , historyList_(std::make_unique<KLruCache<Key, size_t>>(historyCapacity))
+        , k_(k)
+    {}
+
+    // get the value of the key
+    Value get(Key key) override
+    {
+        // First try to get the value from the main cache
+        Value value{};
+        bool inMainCache = KLruCache<Key, Value>::get(key, value);
+
+        // Get and update the access count in the history cache
+        size_t historyCount = historyList_->get(key);
+        historyCount++;
+        historyList_->put(key, historyCount);
+
+        // If the key is already in the main cache, return it directly
+        if (inMainCache)
+        {
+            return value;
+        }
+
+        // If the access count reaches k, try to promote it to the main cache
+        if (historyCount >= k_)
+        {
+            auto it = historyValueMap_.find(key);
+
+            if (it != historyValueMap_.end())
+            {
+                Value storedValue = it->second;
+
+                historyList_->remove(key);
+                historyValueMap_.erase(it);
+
+                KLruCache<Key, Value>::put(key, storedValue);
+
+                return storedValue;
+            }
+        }
+
+        return value;
+    }
+
+    // put the key-value pair into the cache
+    void put(Key key, Value value) override
+    {
+        // Check whether the key is already in the main cache
+        Value existingValue{};
+        bool inMainCache = KLruCache<Key, Value>::get(key, existingValue);
+
+        if (inMainCache)
+        {
+            KLruCache<Key, Value>::put(key, value);
+            return;
+        }
+
+        // Update access history
+        size_t historyCount = historyList_->get(key);
+        historyCount++;
+        historyList_->put(key, historyCount);
+
+        // Store the value temporarily in history
+        historyValueMap_[key] = value;
+
+        // Promote to main cache after reaching k accesses
+        if (historyCount >= k_)
+        {
+            historyList_->remove(key);
+            historyValueMap_.erase(key);
+
+            KLruCache<Key, Value>::put(key, value);
+        }
+    }
+
+private:
+    // history list to store the access count of the keys
+    std::unique_ptr<KLruCache<Key, size_t>> historyList_;
+    // history value map to store the value of the keys
+    std::unordered_map<Key, Value> historyValueMap_;
+    // k is the threshold of the access count
+    int k_;
+};
 } // namespace ZiyangCache
