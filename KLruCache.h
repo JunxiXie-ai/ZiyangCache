@@ -5,6 +5,9 @@
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+#include <thread>
+#include <vector>
+#include <cmath>
 
 #include "KICachePolicy.h"
 
@@ -187,7 +190,7 @@ private:
     
 };
 
-// Lru-K
+// ------------------------------------------------------------------------------------------------
 // KLruKCache is a cache that uses a history list to store the access count of the keys
 template<typename Key, typename Value>
 class KLruKCache : public KLruCache<Key, Value>
@@ -276,5 +279,65 @@ private:
     std::unordered_map<Key, Value> historyValueMap_;
     // k is the threshold of the access count
     int k_;
+};
+// ------------------------------------------------------------------------------------------------
+// LRU optimization: shard the LRU cache to improve performance under high concurrency
+template<typename Key, typename Value>
+class KHashLruCaches
+{
+public:
+    KHashLruCaches(size_t capacity, int sliceNum)
+        : capacity_(capacity)
+        , sliceNum_(sliceNum > 0 ? sliceNum : std::thread::hardware_concurrency())
+    {
+        // Calculate the capacity of each shard
+        size_t sliceSize = std::ceil(
+            capacity / static_cast<double>(sliceNum_)
+        );
+
+        for (int i = 0; i < sliceNum_; ++i)
+        {
+            lruSliceCaches_.emplace_back(
+                new KLruCache<Key, Value>(sliceSize)
+            );
+        }
+    }
+
+    void put(Key key, Value value)
+    {
+        // Hash the key and determine which shard it belongs to
+        size_t sliceIndex = Hash(key) % sliceNum_;
+        lruSliceCaches_[sliceIndex]->put(key, value);
+    }
+
+    bool get(Key key, Value& value)
+    {
+        // Hash the key and determine which shard it belongs to
+        size_t sliceIndex = Hash(key) % sliceNum_;
+        return lruSliceCaches_[sliceIndex]->get(key, value);
+    }
+
+    Value get(Key key)
+    {
+        Value value;
+        memset(&value, 0, sizeof(value));
+
+        get(key, value);
+        return value;
+    }
+
+private:
+    // Convert the key into its hash value
+    size_t Hash(Key key)
+    {
+        std::hash<Key> hashFunc;
+        return hashFunc(key);
+    }
+
+private:
+    size_t capacity_; // total capacity
+    int sliceNum_; // number of shards
+
+    std::vector<std::unique_ptr<KLruCache<Key, Value>>> lruSliceCaches_;
 };
 } // namespace ZiyangCache

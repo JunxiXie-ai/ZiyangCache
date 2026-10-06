@@ -1,2 +1,4 @@
 .DS_Store
 test_lru
+test_lruk
+test_hash_lru
