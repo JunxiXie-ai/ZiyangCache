@@ -202,42 +202,45 @@ public:
         , k_(k)
     {}
 
-    // get the value of the key
-    Value get(Key key) override
+    bool get(Key key, Value& value) override
     {
         // First try to get the value from the main cache
-        Value value{};
         bool inMainCache = KLruCache<Key, Value>::get(key, value);
 
-        // Get and update the access count in the history cache
+        // Update access history
         size_t historyCount = historyList_->get(key);
         historyCount++;
         historyList_->put(key, historyCount);
 
-        // If the key is already in the main cache, return it directly
         if (inMainCache)
         {
-            return value;
+            return true;
         }
 
-        // If the access count reaches k, try to promote it to the main cache
         if (historyCount >= k_)
         {
             auto it = historyValueMap_.find(key);
 
             if (it != historyValueMap_.end())
             {
-                Value storedValue = it->second;
+                value = it->second;
 
                 historyList_->remove(key);
                 historyValueMap_.erase(it);
 
-                KLruCache<Key, Value>::put(key, storedValue);
+                KLruCache<Key, Value>::put(key, value);
 
-                return storedValue;
+                return true;
             }
         }
 
+        return false;
+    }
+
+    Value get(Key key) override
+    {
+        Value value{};
+        get(key, value);
         return value;
     }
 

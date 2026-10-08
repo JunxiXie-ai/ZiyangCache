@@ -156,13 +156,13 @@ under three different workload patterns.
 
 A small set of keys receives most accesses, while a much larger cold-key set is accessed occasionally.
 
-| Policy    | Hit Rate   |
-| --------- | ---------- |
-| LRU       | 49.42%     |
-| LFU       | **67.03%** |
-| ARC       | 65.97%     |
-| LRU-K     | 54.84%     |
-| LFU-Aging | 66.87%     |
+| Policy | Hit Rate |
+| --- | ---: |
+| LRU | 49.42% |
+| LFU | **67.04%** |
+| ARC | 65.89% |
+| LRU-K | 53.51% |
+| LFU-Aging | 66.68% |
 
 LFU performs best because access frequency is a strong predictor of future accesses in a stable hot-key workload.
 
@@ -170,13 +170,13 @@ LFU performs best because access frequency is a strong predictor of future acces
 
 The workload repeatedly scans a key range much larger than the cache capacity.
 
-| Policy    | Hit Rate  |
-| --------- | --------- |
-| LRU       | 4.63%     |
-| LFU       | 8.71%     |
-| ARC       | **9.67%** |
-| LRU-K     | 4.86%     |
-| LFU-Aging | 8.77%     |
+| Policy | Hit Rate |
+| --- | ---: |
+| LRU | 4.58% |
+| LFU | 8.88% |
+| ARC | **9.53%** |
+| LRU-K | 7.65% |
+| LFU-Aging | 8.70% |
 
 Sequential scans can heavily pollute an LRU cache because newly scanned entries continuously replace older entries.
 
@@ -192,13 +192,13 @@ The access pattern changes across several phases, including:
 - local random access
 - mixed workloads
 
-| Policy    | Hit Rate   |
-| --------- | ---------- |
-| LRU       | 55.08%     |
-| LFU       | 41.20%     |
-| ARC       | **59.25%** |
-| LRU-K     | 54.51%     |
-| LFU-Aging | 38.88%     |
+| Policy | Hit Rate |
+| --- | ---: |
+| LRU | 54.89% |
+| LFU | 38.09% |
+| ARC | **58.49%** |
+| LRU-K | 56.60% |
+| LFU-Aging | 38.33% |
 
 ARC performs best because it can dynamically adjust between recency-oriented and frequency-oriented caching as the workload changes.
 
