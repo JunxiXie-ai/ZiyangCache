@@ -323,7 +323,6 @@ public:
     Value get(Key key)
     {
         Value value;
-        memset(&value, 0, sizeof(value));
 
         get(key, value);
         return value;
